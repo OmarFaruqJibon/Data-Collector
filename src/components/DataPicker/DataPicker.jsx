@@ -8,6 +8,8 @@ const DataPicker = () => {
     const [groups, setGroups] = useState([]);
     const [useCustomGroup, setUseCustomGroup] = useState(false);
 
+    const [personSuggestions, setPersonSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
 
     useEffect(() => {
         const fetchGroups = async () => {
@@ -68,17 +70,52 @@ const DataPicker = () => {
 
     const [errors, setErrors] = useState({});
 
-    const handlePersonChange = (e) => {
+    const handlePersonChange = async (e) => {
         const { name, value } = e.target;
+
         setPersonInfo(prev => ({
             ...prev,
             [name]: value
         }));
 
-        if (errors[name]) {
-            setErrors(prev => ({ ...prev, [name]: '' }));
+        if (name === "profileName") {
+            if (value.length < 2) {
+                setPersonSuggestions([]);
+                setShowSuggestions(false);
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/persons?q=${encodeURIComponent(value)}`);
+                const data = await res.json();
+
+                if (data.success) {
+                    setPersonSuggestions(data.persons);
+                    setShowSuggestions(true);
+                }
+            } catch (err) {
+                console.error("Person search failed", err);
+            }
         }
     };
+
+
+    const selectPerson = (person) => {
+        setPersonInfo({
+            profileName: person.profile_name || "",
+            profileId: person.profile_id || "",
+            phoneNumber: person.phone_number || "",
+            address: person.address || "",
+            occupation: person.occupation || "",
+            age: person.age || "",
+        });
+
+        setShowSuggestions(false);
+        setPersonSuggestions([]);
+    };
+
+
+
 
     const handleGroupChange = (e) => {
         const { name, value } = e.target;
@@ -216,23 +253,47 @@ const DataPicker = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {/* Profile Name */}
-                            <div className="space-y-2">
+                            <div className="space-y-2 relative">
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                                     <User className="w-4 h-4" />
                                     Profile Name
                                 </label>
+
                                 <input
                                     type="text"
                                     name="profileName"
                                     value={personInfo.profileName}
                                     onChange={handlePersonChange}
-                                    className={`text-gray-500 w-full px-4 py-3 rounded-lg border ${errors.profileName ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all`}
+                                    onFocus={() => personSuggestions.length && setShowSuggestions(true)}
+                                    className={`text-gray-500 w-full px-4 py-3 rounded-lg border ${errors.profileName ? "border-red-500" : "border-gray-300"
+                                        }`}
                                     placeholder="Enter Facebook profile name"
+                                    autoComplete="off"
                                 />
+
+                                {/* Suggestions dropdown */}
+                                {showSuggestions && personSuggestions.length > 0 && (
+                                    <ul className="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-md max-h-56 overflow-auto">
+                                        {personSuggestions.map((p, idx) => (
+                                            <li
+                                                key={idx}
+                                                onClick={() => selectPerson(p)}
+                                                className="px-4 py-2 cursor-pointer hover:bg-blue-50 text-gray-700"
+                                            >
+                                                <div className="font-medium">{p.profile_name}</div>
+                                                <div className="text-xs text-gray-500">
+                                                    ID: {p.profile_id}
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+
                                 {errors.profileName && (
                                     <p className="text-red-500 text-sm">{errors.profileName}</p>
                                 )}
                             </div>
+
 
                             {/* Profile ID */}
                             <div className="space-y-2">
