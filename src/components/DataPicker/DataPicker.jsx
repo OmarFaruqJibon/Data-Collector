@@ -11,6 +11,7 @@ const DataPicker = () => {
     const [personDbId, setPersonDbId] = useState(null);
     const [personGroups, setPersonGroups] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [showGroupDropdown, setShowGroupDropdown] = useState(false);
 
     useEffect(() => {
         const fetchGroups = async () => {
@@ -226,6 +227,13 @@ const DataPicker = () => {
         }
     };
 
+    useEffect(() => {
+        const handleClickOutside = () => setShowGroupDropdown(false);
+        window.addEventListener("click", handleClickOutside);
+        return () => window.removeEventListener("click", handleClickOutside);
+    }, []);
+
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-8">
             <div className="max-w-7xl mx-auto">
@@ -294,14 +302,17 @@ const DataPicker = () => {
 
                                 {/* Suggestions Dropdown */}
                                 {showSuggestions && personSuggestions.length > 0 && (
-                                    <div className="absolute z-20 w-full mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden">
+                                    <div className="fixed md:absolute z-50 w-[calc(100vw-2rem)] md:w-full max-w-[calc(100vw-2rem)] md:max-w-none mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden left-4 md:left-0 md:top-full">
                                         <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
                                             <div className="flex items-center gap-2">
                                                 <Users className="w-4 h-4 text-blue-600" />
                                                 <span className="text-sm font-semibold text-gray-700">Found {personSuggestions.length} profiles</span>
                                             </div>
                                         </div>
-                                        <div className="max-h-64 overflow-y-auto">
+                                        <div
+                                            className="max-h-96 overflow-y-auto custom-scrollbar"
+                                            style={{ maxHeight: 'min(24rem, 60vh)' }}
+                                        >
                                             {personSuggestions.map((p, idx) => (
                                                 <div
                                                     key={idx}
@@ -452,9 +463,7 @@ const DataPicker = () => {
                     </div>
 
                     {/* Group Information Section*/}
-                    <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-6 md:p-8 border border-white/20 relative overflow-hidden">
-                        {/* Decorative background element */}
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full -translate-y-16 translate-x-16 opacity-50"></div>
+                    <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-6 md:p-8 border border-white/20 relative">
 
                         <div className="relative">
                             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-6 border-b border-gray-100">
@@ -478,7 +487,7 @@ const DataPicker = () => {
                                     className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-medium hover:from-green-600 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
                                 >
                                     <Plus className="w-4 h-4" />
-                                    Add New Group
+                                    New Group
                                 </button>
                             </div>
 
@@ -487,32 +496,81 @@ const DataPicker = () => {
                                 <label className="text-sm font-semibold text-gray-700 mb-2 block">
                                     Select Existing Group
                                 </label>
-                                <div className="relative">
-                                    <select
-                                        disabled={!personDbId}
-                                        className={`... ${!personDbId ? "opacity-60 cursor-not-allowed" : "w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 hover:border-green-300 bg-white/50 focus:border-green-500 focus:ring-4 focus:ring-green-100 outline-none transition-all duration-300 appearance-none text-gray-700 cursor-pointer"}`}
-                                        onChange={handleGroupSelect}
 
+                                <div className="relative">
+                                    {/* Selected group display */}
+                                    <button
+                                        type="button"
+                                        disabled={!personDbId}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowGroupDropdown(v => !v);
+                                        }}
+                                        className={`w-full text-left px-4 py-3.5 rounded-xl border-2 
+        ${!personDbId
+                                                ? "opacity-60 cursor-not-allowed border-gray-200"
+                                                : "border-gray-200 hover:border-green-300 bg-white/50 focus:border-green-500"}
+      `}
                                     >
-                                        <option value="" className="text-gray-400">Choose a group...</option>
-                                        {personGroups.map(g => (
-                                            <option key={g.id} value={g.id}>
-                                                {g.group_name}{g.note ? ` — ${g.note}` : ""}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                                        {groupInfo.groupName ? (
+                                            <div>
+                                                <div className="font-semibold text-gray-800">
+                                                    {groupInfo.groupName}
+                                                </div>
+                                                {groupInfo.note && (
+                                                    <div className="text-sm text-gray-500">
+                                                        {groupInfo.note}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-400">Choose a group...</span>
+                                        )}
+                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                                    </button>
+
+                                    {/* Dropdown panel */}
+                                    {showGroupDropdown && personDbId && (
+                                        <div className="fixed md:absolute z-50 w-[calc(100vw-2rem)] md:w-full max-w-[calc(100vw-2rem)] md:max-w-none mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden left-4 md:left-0 md:top-full">
+                                            <div
+                                                className="overflow-y-auto custom-scrollbar"
+                                                style={{ maxHeight: 'min(24rem, 60vh)' }}
+                                            >
+                                                {personGroups.map(g => (
+                                                    <div
+                                                        key={g.id}
+                                                        onClick={() => {
+                                                            setGroupInfo({
+                                                                id: g.id,
+                                                                groupName: g.group_name,
+                                                                note: g.note || ""
+                                                            });
+                                                            setShowGroupDropdown(false);
+                                                            setUseCustomGroup(false);
+                                                        }}
+                                                        className="px-4 py-3 cursor-pointer hover:bg-green-50 transition-all border-b border-gray-100 last:border-b-0"
+                                                    >
+                                                        <div className="font-semibold text-gray-800">
+                                                            {g.group_name}
+                                                        </div>
+                                                        {g.note && (
+                                                            <div className="text-sm text-gray-500 mt-0.5">
+                                                                {g.note}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
+
                                 {personGroups.length > 0 && (
                                     <p className="text-sm text-gray-500 mt-2">
                                         {personGroups.length} group(s) found for this person
                                     </p>
                                 )}
                             </div>
-
-
-
-
 
                             {/* Manual Entry */}
                             {useCustomGroup && (
