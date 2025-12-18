@@ -13,10 +13,10 @@ export async function GET(req) {
 
   try {
     const [rows] = await db.execute(
-      `SELECT id, group_name
-       FROM group_info
-       WHERE person_id = ?
-       ORDER BY created_at DESC`,
+      `SELECT id, group_name, note
+      FROM group_info
+      WHERE person_id = ?
+      ORDER BY group_name`,
       [personId]
     );
 

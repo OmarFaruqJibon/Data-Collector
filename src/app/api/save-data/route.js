@@ -50,30 +50,25 @@ export async function POST(req) {
     let groupDbId;
 
     if (group.id) {
-      // Existing group selected
-      groupDbId = group.id;
-    } else {
-      // New group for this person
-      const [insertGroup] = await connection.execute(
-        `INSERT INTO group_info (group_name, person_id)
-         VALUES (?, ?)`,
-        [group.groupName, personId]
+      const [existingGroup] = await connection.execute(
+        `SELECT id FROM group_info WHERE id = ? AND person_id = ?`,
+        [group.id, personId]
       );
+
+      if (!existingGroup.length) {
+        throw new Error("Invalid group selection");
+      }
+
+      groupDbId = existingGroup[0].id;
+    } else {
+      const [insertGroup] = await connection.execute(
+        `INSERT INTO group_info (group_name, note, person_id)
+     VALUES (?, ?, ?)`,
+        [group.groupName, group.note || null, personId]
+      );
+
       groupDbId = insertGroup.insertId;
     }
-
-    /* ---------- POST ---------- */
-    await connection.execute(
-      `INSERT INTO post_info
-       (post_details, comments, person_id, group_id)
-       VALUES (?, ?, ?, ?)`,
-      [
-        post.postDetails,
-        post.comments || null,
-        personId,
-        groupDbId,
-      ]
-    );
 
     await connection.commit();
     return NextResponse.json({ success: true });
