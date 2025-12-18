@@ -11,6 +11,9 @@ const DataPicker = () => {
     const [personSuggestions, setPersonSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
 
+    const [personDbId, setPersonDbId] = useState(null);
+    const [personGroups, setPersonGroups] = useState([]);
+
     useEffect(() => {
         const fetchGroups = async () => {
             try {
@@ -28,24 +31,25 @@ const DataPicker = () => {
     }, []);
 
 
-    const handleGroupSelect = (e) => {
-        const value = e.target.value;
+  const handleGroupSelect = (e) => {
+  const value = e.target.value;
 
-        if (value === "__new__") {
-            setUseCustomGroup(true);
-            setGroupInfo({ groupName: "", groupId: "" });
-            return;
-        }
+  if (value === "__new__") {
+    setUseCustomGroup(true);
+    setGroupInfo({ groupName: "", id: null });
+    return;
+  }
 
-        const selected = groups.find(g => g.group_id === value);
-        if (selected) {
-            setUseCustomGroup(false);
-            setGroupInfo({
-                groupName: selected.group_name,
-                groupId: selected.group_id,
-            });
-        }
-    };
+  const selected = personGroups.find(g => String(g.id) === value);
+  if (selected) {
+    setUseCustomGroup(false);
+    setGroupInfo({
+      id: selected.id,
+      groupName: selected.group_name,
+    });
+  }
+};
+
 
 
 
@@ -59,9 +63,10 @@ const DataPicker = () => {
     });
 
     const [groupInfo, setGroupInfo] = useState({
-        groupName: '',
-        groupId: '',
-    });
+  id: null,        // DB group id
+  groupName: "",
+});
+
 
     const [postInfo, setPostInfo] = useState({
         postDetails: '',
@@ -100,10 +105,12 @@ const DataPicker = () => {
     };
 
 
-    const selectPerson = (person) => {
+
+    const selectPerson = async (person) => {
+        console.log("Selected person:", person);
         setPersonInfo({
-            profileName: person.profile_name || "",
-            profileId: person.profile_id || "",
+            profileName: person.profile_name,
+            profileId: person.profile_id,
             phoneNumber: person.phone_number || "",
             address: person.address || "",
             occupation: person.occupation || "",
@@ -111,10 +118,18 @@ const DataPicker = () => {
         });
 
         setShowSuggestions(false);
-        setPersonSuggestions([]);
+
+        // store DB person id
+        setPersonDbId(person.id);
+
+        // Fetch persons groups
+        const res = await fetch(`/api/person-groups?personId=${person.id}`);
+        const data = await res.json();
+
+        if (data.success) {
+            setPersonGroups(data.groups);
+        }
     };
-
-
 
 
     const handleGroupChange = (e) => {
@@ -154,9 +169,6 @@ const DataPicker = () => {
         }
         if (!groupInfo.groupName.trim()) {
             newErrors.groupName = 'Group Name is required';
-        }
-        if (!groupInfo.groupId.trim()) {
-            newErrors.groupId = 'Group ID is required';
         }
 
         // Validate phone number format 
@@ -389,66 +401,72 @@ const DataPicker = () => {
                     </div>
 
                     {/* Group Information Section */}
-                    <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
-                        <div className="flex items-center gap-3 mb-6">
-                            <Users className="w-7 h-7 text-green-600" />
-                            <h2 className="text-2xl font-bold text-gray-800">
-                                Group Information
-                            </h2>
-                        </div>
+                   {/* Group Information Section */}
+<div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 relative">
+  
+  {/* Header */}
+  <div className="flex items-center justify-between mb-6">
+    <div className="flex items-center gap-3">
+      <Users className="w-7 h-7 text-green-600" />
+      <h2 className="text-2xl font-bold text-gray-800">
+        Group Information
+      </h2>
+    </div>
 
-                        {/* Dropdown */}
-                        <div className="space-y-2 mb-6">
-                            <label className="text-sm font-medium text-gray-700">
-                                Select Existing Group
-                            </label>
-                            <select
-                                onChange={handleGroupSelect}
-                                className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-600"
-                            >
-                                <option value="">-- Select Group --</option>
-                                {groups.map((g) => (
-                                    <option key={g.group_id} value={g.group_id}>
-                                        {g.group_name}
-                                    </option>
-                                ))}
-                                <option value="__new__">➕ Add New Group</option>
-                            </select>
-                        </div>
+    {/* Add New Group Button */}
+    <button
+      type="button"
+      onClick={() => setUseCustomGroup(true)}
+      className="flex items-center gap-2 px-4 py-2 rounded-lg 
+                 bg-green-600 text-white text-sm font-medium
+                 hover:bg-green-700 transition"
+    >
+      ➕ Add New Group
+    </button>
+  </div>
 
-                        {/* Manual Entry */}
-                        {useCustomGroup && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">
-                                        Facebook Group Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="groupName"
-                                        value={groupInfo.groupName}
-                                        onChange={handleGroupChange}
-                                        className="w-full px-4 py-3 rounded-lg border border-gray-300"
-                                        placeholder="Enter Facebook group name"
-                                    />
-                                </div>
+  {/* Dropdown */}
+  <div className="space-y-2 mb-6">
+    <label className="text-sm font-medium text-gray-700">
+      Select Existing Group
+    </label>
 
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">
-                                        Facebook Group ID
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="groupId"
-                                        value={groupInfo.groupId}
-                                        onChange={handleGroupChange}
-                                        className="w-full px-4 py-3 rounded-lg border border-gray-300"
-                                        placeholder="Enter Facebook group ID"
-                                    />
-                                </div>
-                            </div>
-                        )}
-                    </div>
+    <select
+      onChange={handleGroupSelect}
+      className="w-full px-4 py-3 rounded-lg border border-gray-300
+                 focus:ring-2 focus:ring-green-500 focus:outline-none"
+    >
+      <option value="">Select Group</option>
+
+      {personGroups.map(g => (
+        <option key={g.id} value={g.id}>
+          {g.group_name}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  {/* Manual Entry */}
+  {useCustomGroup && (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-gray-700">
+          Facebook Group Name
+        </label>
+        <input
+          type="text"
+          name="groupName"
+          value={groupInfo.groupName}
+          onChange={handleGroupChange}
+          className="w-full px-4 py-3 rounded-lg border border-gray-300
+                     focus:ring-2 focus:ring-green-500 focus:outline-none"
+          placeholder="Enter Facebook group name"
+        />
+      </div>
+    </div>
+  )}
+</div>
+
 
 
                     {/* Post Information Section */}

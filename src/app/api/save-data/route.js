@@ -1,4 +1,5 @@
 // src/app/api/save-data/route.js
+
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 
@@ -9,12 +10,7 @@ export async function POST(req) {
     const body = await req.json();
     const { person, group, post } = body;
 
-    // Basic validation
-    if (
-      !person?.profileId ||
-      !group?.groupId ||
-      !post?.postDetails
-    ) {
+    if (!person?.profileId || !group?.groupName || !post?.postDetails) {
       return NextResponse.json(
         { success: false, error: "Invalid payload" },
         { status: 400 }
@@ -24,15 +20,14 @@ export async function POST(req) {
     connection = await db.getConnection();
     await connection.beginTransaction();
 
-
+    /* ---------- PERSON ---------- */
     const [existingPerson] = await connection.execute(
       `SELECT id FROM person_info WHERE profile_id = ?`,
       [person.profileId]
     );
 
     let personId;
-
-    if (existingPerson.length > 0) {
+    if (existingPerson.length) {
       personId = existingPerson[0].id;
     } else {
       const [insertPerson] = await connection.execute(
@@ -40,7 +35,7 @@ export async function POST(req) {
          (profile_name, profile_id, phone_number, address, occupation, age)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
-          person.profileName || null,
+          person.profileName,
           person.profileId,
           person.phoneNumber || null,
           person.address || null,
@@ -51,30 +46,23 @@ export async function POST(req) {
       personId = insertPerson.insertId;
     }
 
+    /* ---------- GROUP (belongs to person) ---------- */
+    let groupDbId;
 
-    const [existingGroup] = await connection.execute(
-      `SELECT id FROM group_info WHERE group_id = ?`,
-      [group.groupId]
-    );
-
-    let groupId;
-
-    if (existingGroup.length > 0) {
-      groupId = existingGroup[0].id;
+    if (group.id) {
+      // Existing group selected
+      groupDbId = group.id;
     } else {
+      // New group for this person
       const [insertGroup] = await connection.execute(
-        `INSERT INTO group_info
-         (group_name, group_id)
+        `INSERT INTO group_info (group_name, person_id)
          VALUES (?, ?)`,
-        [
-          group.groupName || null,
-          group.groupId,
-        ]
+        [group.groupName, personId]
       );
-      groupId = insertGroup.insertId;
+      groupDbId = insertGroup.insertId;
     }
 
-
+    /* ---------- POST ---------- */
     await connection.execute(
       `INSERT INTO post_info
        (post_details, comments, person_id, group_id)
@@ -83,24 +71,18 @@ export async function POST(req) {
         post.postDetails,
         post.comments || null,
         personId,
-        groupId,
+        groupDbId,
       ]
     );
 
     await connection.commit();
-
     return NextResponse.json({ success: true });
 
   } catch (error) {
     if (connection) await connection.rollback();
-
     console.error("SAVE DATA ERROR:", error);
-
     return NextResponse.json(
-      {
-        success: false,
-        error: error.message,
-      },
+      { success: false, error: error.message },
       { status: 500 }
     );
   } finally {

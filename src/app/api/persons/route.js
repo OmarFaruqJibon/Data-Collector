@@ -1,3 +1,4 @@
+// src/app/api/persons/route.js
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 
@@ -12,6 +13,7 @@ export async function GET(req) {
   try {
     const [rows] = await db.execute(
       `SELECT 
+         id,                  
          profile_name,
          profile_id,
          phone_number,

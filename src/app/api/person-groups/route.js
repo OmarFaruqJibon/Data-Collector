@@ -1,13 +1,23 @@
-// src/app/api/groups/route.js
+// src/app/api/person-groups/route.js
+
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const personId = searchParams.get("personId");
+
+  if (!personId) {
+    return NextResponse.json({ success: true, groups: [] });
+  }
+
   try {
     const [rows] = await db.execute(
-      `SELECT id, group_name, person_id
+      `SELECT id, group_name
        FROM group_info
-       ORDER BY group_name`
+       WHERE person_id = ?
+       ORDER BY created_at DESC`,
+      [personId]
     );
 
     return NextResponse.json({ success: true, groups: rows });
