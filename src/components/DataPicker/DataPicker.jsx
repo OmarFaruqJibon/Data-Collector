@@ -691,66 +691,68 @@ const DataPicker = () => {
                                 </div>
                             )}
 
-                            {showGroupModal && (
-                                <Modal
-                                    title="Create New Group"
-                                    onClose={() => {
-                                        setShowGroupModal(false);
-                                        setUseCustomGroup(false);
-                                    }}
-                                >
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-gray-700">
-                                                Facebook Group Name
-                                            </label>
-                                            <input
-                                                type="text"
-                                                name="groupName"
-                                                value={groupInfo.groupName}
-                                                onChange={handleGroupChange}
-                                                className={`w-full px-4 py-3.5 rounded-xl text-gray-700 border-2 ${errors.groupName ? "border-red-400" : "border-green-300"
-                                                    } focus:ring-4 focus:ring-green-100`}
-                                            />
-                                            {errors.groupName && (
-                                                <p className="text-sm text-red-500">{errors.groupName}</p>
-                                            )}
-                                        </div>
 
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-gray-700">
-                                                Notes (optional)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                name="note"
-                                                value={groupInfo.note}
-                                                onChange={handleGroupChange}
-                                                className="w-full px-4 py-3.5 rounded-xl text-gray-700 border-2 border-green-300 focus:ring-4 focus:ring-green-100"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="flex justify-end gap-3 mt-8">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowGroupModal(false)}
-                                            className="px-5 py-2 rounded-xl border text-gray-600 hover:bg-gray-50"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowGroupModal(false)}
-                                            className="px-5 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700"
-                                        >
-                                            Save Group
-                                        </button>
-                                    </div>
-                                </Modal>
-                            )}
                         </div>
                     </div>
+
+                    {showGroupModal && (
+                        <Modal
+                            title="Create New Group"
+                            onClose={() => {
+                                setShowGroupModal(false);
+                                setUseCustomGroup(false);
+                            }}
+                        >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">
+                                        Facebook Group Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="groupName"
+                                        value={groupInfo.groupName}
+                                        onChange={handleGroupChange}
+                                        className={`w-full px-4 py-3.5 rounded-xl text-gray-700 border-2 ${errors.groupName ? "border-red-400" : "border-green-300"
+                                            } focus:ring-4 focus:ring-green-100`}
+                                    />
+                                    {errors.groupName && (
+                                        <p className="text-sm text-red-500">{errors.groupName}</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">
+                                        Notes (optional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="note"
+                                        value={groupInfo.note}
+                                        onChange={handleGroupChange}
+                                        className="w-full px-4 py-3.5 rounded-xl text-gray-700 border-2 border-green-300 focus:ring-4 focus:ring-green-100"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 mt-8">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowGroupModal(false)}
+                                    className="px-5 py-2 rounded-xl border text-gray-600 hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowGroupModal(false)}
+                                    className="px-5 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700"
+                                >
+                                    Save Group
+                                </button>
+                            </div>
+                        </Modal>
+                    )}
 
                     {showPostModal && (
                         <Modal
