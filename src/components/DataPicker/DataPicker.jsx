@@ -235,6 +235,54 @@ const DataPicker = () => {
         }
     };
 
+    const saveGroup = async () => {
+    if (!groupInfo.groupName.trim()) {
+        alert("Group name is required");
+        return;
+    }
+
+    if (!personDbId) {
+        alert("Please select a person first");
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/groups", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                personId: personDbId,
+                groupName: groupInfo.groupName,
+                note: groupInfo.note
+            })
+        });
+
+        const data = await res.json();
+
+        if (!data.success) {
+            throw new Error(data.error || "Failed to save group");
+        }
+
+        // ✅ Update local state
+        const newGroup = data.group;
+
+        setPersonGroups(prev => [...prev, newGroup]);
+        setGroupInfo({
+            id: newGroup.id,
+            groupName: newGroup.group_name,
+            note: groupInfo.note || ""
+        });
+
+        setShowGroupModal(false);
+        setUseCustomGroup(false);
+
+    } catch (err) {
+        console.error("Save group error:", err);
+        alert(err.message);
+    }
+};
+
+
     const savePost = async () => {
         if (!postInfo.postDetails.trim()) return alert("Post details required");
 
@@ -745,7 +793,7 @@ const DataPicker = () => {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setShowGroupModal(false)}
+                                    onClick={saveGroup}
                                     className="px-5 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700"
                                 >
                                     Save Group
@@ -805,38 +853,6 @@ const DataPicker = () => {
                             </div>
                         </Modal>
                     )}
-
-                    {/* Submit Button */}
-                    <div className="flex justify-center pt-8">
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white font-semibold rounded-2xl shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 transition-all duration-300 focus:ring-4 focus:ring-blue-300 focus:outline-none overflow-hidden disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-                            {isLoading ? (
-                                <div className="relative flex items-center gap-3">
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    <span className="relative">Saving...</span>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="relative p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
-                                        <Save className="w-5 h-5" />
-                                    </div>
-                                    <span className="relative">Save All Information</span>
-                                    <div className="relative ml-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300">
-                                        →
-                                    </div>
-                                </>
-                            )}
-
-                            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000">
-                                <div className="w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-                            </div>
-                        </button>
-                    </div>
                 </form>
 
                 {/* Footer */}

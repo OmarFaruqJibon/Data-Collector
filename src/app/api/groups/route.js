@@ -19,3 +19,41 @@ export async function GET() {
     );
   }
 }
+
+export async function POST(req) {
+  try {
+    const body = await req.json();
+    const { personId, groupName, note } = body;
+
+    if (!personId || !groupName) {
+      return NextResponse.json(
+        { success: false, error: "personId and groupName are required" },
+        { status: 400 }
+      );
+    }
+
+    const [result] = await db.execute(
+      `
+      INSERT INTO group_info (group_name, note, person_id)
+      VALUES (?, ?, ?)
+      `,
+      [groupName, note || null, personId]
+    );
+
+    return NextResponse.json({
+      success: true,
+      group: {
+        id: result.insertId,
+        group_name: groupName,
+        person_id: personId
+      }
+    });
+  } catch (error) {
+    console.error("CREATE GROUP ERROR:", error);
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
