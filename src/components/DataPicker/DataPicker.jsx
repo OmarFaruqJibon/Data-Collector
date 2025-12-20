@@ -2,6 +2,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Phone, MapPin, Briefcase, Calendar, Users, MessageSquare, FileText, Hash, Save, Search, ChevronDown, Plus, X } from 'lucide-react';
+import Modal from './Modal/Modal';
 
 const DataPicker = () => {
     const [groups, setGroups] = useState([]);
@@ -265,9 +266,9 @@ const DataPicker = () => {
     };
 
     useEffect(() => {
-        const handleMouseDown = (e) => {
-            if (showGroupModal || showPostModal) return;
+        if (showGroupModal || showPostModal) return;
 
+        const handleMouseDown = (e) => {
             if (
                 groupDropdownRef.current &&
                 !groupDropdownRef.current.contains(e.target)
@@ -280,33 +281,6 @@ const DataPicker = () => {
         return () => document.removeEventListener("mousedown", handleMouseDown);
     }, [showGroupModal, showPostModal]);
 
-    const Modal = ({ title, onClose, children }) => (
-        <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-            onClick={onClose} // Close when clicking on backdrop
-        >
-            <div
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 animate-fadeIn"
-                onClick={(e) => e.stopPropagation()} 
-            >
-                {/* Header */}
-                <div className="flex items-center justify-between p-5 border-b">
-                    <h3 className="text-xl font-bold text-gray-800">{title}</h3>
-                    <button
-                        onClick={onClose}
-                        className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
-                {/* Content */}
-                <div className="p-6">
-                    {children}
-                </div>
-            </div>
-        </div>
-    );
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-8">
@@ -590,7 +564,7 @@ const DataPicker = () => {
 
                                 </div>
                             </div>
-                            
+
                             {/*Dropdown */}
                             <div className="space-y-2 mb-8">
                                 <label className="text-sm font-semibold text-gray-700 mb-2 block">
@@ -735,9 +709,8 @@ const DataPicker = () => {
                                                 name="groupName"
                                                 value={groupInfo.groupName}
                                                 onChange={handleGroupChange}
-                                                className={`w-full px-4 py-3.5 rounded-xl border-2 ${errors.groupName ? "border-red-400" : "border-green-300"
+                                                className={`w-full px-4 py-3.5 rounded-xl text-gray-700 border-2 ${errors.groupName ? "border-red-400" : "border-green-300"
                                                     } focus:ring-4 focus:ring-green-100`}
-                                                placeholder="Enter group name"
                                             />
                                             {errors.groupName && (
                                                 <p className="text-sm text-red-500">{errors.groupName}</p>
@@ -753,8 +726,7 @@ const DataPicker = () => {
                                                 name="note"
                                                 value={groupInfo.note}
                                                 onChange={handleGroupChange}
-                                                className="w-full px-4 py-3.5 rounded-xl border-2 border-green-300 focus:ring-4 focus:ring-green-100"
-                                                placeholder="Optional note"
+                                                className="w-full px-4 py-3.5 rounded-xl text-gray-700 border-2 border-green-300 focus:ring-4 focus:ring-green-100"
                                             />
                                         </div>
                                     </div>
@@ -795,7 +767,7 @@ const DataPicker = () => {
                                         value={postInfo.postDetails}
                                         onChange={handlePostChange}
                                         rows="4"
-                                        className="w-full px-4 py-3 rounded-xl border-2 border-purple-300 focus:ring-4 focus:ring-purple-100"
+                                        className="w-full px-4 py-3 rounded-xl border-2 text-gray-700 border-purple-300 focus:ring-4 focus:ring-purple-100"
                                     />
                                 </div>
 
@@ -808,7 +780,7 @@ const DataPicker = () => {
                                         value={postInfo.comments}
                                         onChange={handlePostChange}
                                         rows="3"
-                                        className="w-full px-4 py-3 rounded-xl border-2 border-pink-300 focus:ring-4 focus:ring-pink-100"
+                                        className="w-full px-4 py-3 rounded-xl border-2 text-gray-700 border-pink-300 focus:ring-4 focus:ring-pink-100"
                                     />
                                 </div>
                             </div>
