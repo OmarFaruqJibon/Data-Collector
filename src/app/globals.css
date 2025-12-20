@@ -24,10 +24,9 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-  overflow-x: hidden; /* Prevent horizontal scroll */
+  overflow-x: hidden;
 }
 
-/* Custom scrollbar */
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 #f1f5f9;
@@ -51,12 +50,10 @@ body {
   background: #94a3b8;
 }
 
-/* Ensure dropdowns appear above everything */
 .z-50 {
   z-index: 50 !important;
 }
 
-/* Fix for dropdown positioning */
 .fixed {
   position: fixed;
 }

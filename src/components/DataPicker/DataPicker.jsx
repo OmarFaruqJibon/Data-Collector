@@ -1,6 +1,6 @@
 // components/DataPicker.jsx
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Phone, MapPin, Briefcase, Calendar, Users, MessageSquare, FileText, Hash, Save, Search, ChevronDown, Plus, X } from 'lucide-react';
 
 const DataPicker = () => {
@@ -12,6 +12,11 @@ const DataPicker = () => {
     const [personGroups, setPersonGroups] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [showGroupDropdown, setShowGroupDropdown] = useState(false);
+    const [showPostSection, setShowPostSection] = useState(false);
+    const [groupRecords, setGroupRecords] = useState([]);
+    const [showGroupModal, setShowGroupModal] = useState(false);
+    const [showPostModal, setShowPostModal] = useState(false);
+    const groupDropdownRef = useRef(null);
 
     useEffect(() => {
         const fetchGroups = async () => {
@@ -122,6 +127,7 @@ const DataPicker = () => {
     };
 
     const handleGroupChange = (e) => {
+        e.stopPropagation(); // Prevent event bubbling
         const { name, value } = e.target;
         setGroupInfo(prev => ({
             ...prev,
@@ -134,6 +140,7 @@ const DataPicker = () => {
     };
 
     const handlePostChange = (e) => {
+        e.stopPropagation(); // Prevent event bubbling
         const { name, value } = e.target;
         setPostInfo(prev => ({
             ...prev,
@@ -227,12 +234,79 @@ const DataPicker = () => {
         }
     };
 
-    useEffect(() => {
-        const handleClickOutside = () => setShowGroupDropdown(false);
-        window.addEventListener("click", handleClickOutside);
-        return () => window.removeEventListener("click", handleClickOutside);
-    }, []);
+    const savePost = async () => {
+        if (!postInfo.postDetails.trim()) return alert("Post details required");
 
+        try {
+            const res = await fetch("/api/posts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    personId: personDbId,
+                    groupId: groupInfo.id,
+                    postDetails: postInfo.postDetails,
+                    comments: postInfo.comments
+                })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                setGroupRecords(prev => [data.post, ...prev]);
+                setPostInfo({ postDetails: "", comments: "" });
+                setShowPostModal(false);
+            } else {
+                alert("Failed to save post");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Server error");
+        }
+    };
+
+    useEffect(() => {
+        const handleMouseDown = (e) => {
+            if (showGroupModal || showPostModal) return;
+
+            if (
+                groupDropdownRef.current &&
+                !groupDropdownRef.current.contains(e.target)
+            ) {
+                setShowGroupDropdown(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleMouseDown);
+        return () => document.removeEventListener("mousedown", handleMouseDown);
+    }, [showGroupModal, showPostModal]);
+
+    const Modal = ({ title, onClose, children }) => (
+        <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            onClick={onClose} // Close when clicking on backdrop
+        >
+            <div
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 animate-fadeIn"
+                onClick={(e) => e.stopPropagation()} 
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between p-5 border-b">
+                    <h3 className="text-xl font-bold text-gray-800">{title}</h3>
+                    <button
+                        onClick={onClose}
+                        className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6">
+                    {children}
+                </div>
+            </div>
+        </div>
+    );
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-8">
@@ -301,7 +375,7 @@ const DataPicker = () => {
                                 </div>
 
                                 {/* Suggestions Dropdown */}
-                                {showSuggestions && personSuggestions.length > 0 && (
+                                {showSuggestions && !showGroupModal && !showPostModal && personSuggestions.length > 0 && (
                                     <div className="fixed md:absolute z-50 w-[calc(100vw-2rem)] md:w-full max-w-[calc(100vw-2rem)] md:max-w-none mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden left-4 md:left-0 md:top-full">
                                         <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
                                             <div className="flex items-center gap-2">
@@ -464,7 +538,6 @@ const DataPicker = () => {
 
                     {/* Group Information Section*/}
                     <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-6 md:p-8 border border-white/20 relative">
-
                         <div className="relative">
                             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-6 border-b border-gray-100">
                                 <div className="flex items-center gap-4 mb-4 md:mb-0">
@@ -481,16 +554,43 @@ const DataPicker = () => {
                                     </div>
                                 </div>
 
-                                <button
-                                    type="button"
-                                    onClick={() => setUseCustomGroup(true)}
-                                    className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-medium hover:from-green-600 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    New Group
-                                </button>
-                            </div>
+                                <div>
+                                    {personDbId && (
 
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowGroupDropdown(false);
+                                                setShowSuggestions(false);
+                                                setShowGroupModal(true);
+                                                setUseCustomGroup(true);
+                                            }}
+                                            className="inline-flex items-center mr-2 gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-medium hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            New Group
+                                        </button>
+                                    )}
+
+
+                                    {groupInfo.id && personDbId && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { setShowSuggestions(false); setShowPostModal(true); setShowGroupDropdown(false); }}
+                                            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl 
+        bg-gradient-to-r from-purple-500 to-pink-600 text-white font-medium
+        hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            New Post
+                                        </button>
+                                    )}
+
+
+                                </div>
+                            </div>
+                            
                             {/*Dropdown */}
                             <div className="space-y-2 mb-8">
                                 <label className="text-sm font-semibold text-gray-700 mb-2 block">
@@ -530,8 +630,8 @@ const DataPicker = () => {
                                     </button>
 
                                     {/* Dropdown panel */}
-                                    {showGroupDropdown && personDbId && (
-                                        <div className="fixed md:absolute z-50 w-[calc(100vw-2rem)] md:w-full max-w-[calc(100vw-2rem)] md:max-w-none mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden left-4 md:left-0 md:top-full">
+                                    {showGroupDropdown && !showGroupModal && !showPostModal && personDbId && (
+                                        <div ref={groupDropdownRef} className="fixed md:absolute z-50 w-[calc(100vw-2rem)] md:w-full max-w-[calc(100vw-2rem)] md:max-w-none mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden left-4 md:left-0 md:top-full">
                                             <div
                                                 className="overflow-y-auto custom-scrollbar"
                                                 style={{ maxHeight: 'min(24rem, 60vh)' }}
@@ -539,14 +639,35 @@ const DataPicker = () => {
                                                 {personGroups.map(g => (
                                                     <div
                                                         key={g.id}
-                                                        onClick={() => {
+                                                        onClick={async () => {
+                                                            // 1️⃣ Set selected group
                                                             setGroupInfo({
                                                                 id: g.id,
                                                                 groupName: g.group_name,
                                                                 note: g.note || ""
                                                             });
+
+                                                            // 2️⃣ Close dropdown & reset post section
                                                             setShowGroupDropdown(false);
                                                             setUseCustomGroup(false);
+                                                            setShowPostSection(false);
+
+                                                            // 3️⃣ Load existing posts for this person + group
+                                                            try {
+                                                                const res = await fetch(
+                                                                    `/api/posts?personId=${personDbId}&groupId=${g.id}`
+                                                                );
+                                                                const data = await res.json();
+
+                                                                if (data.success) {
+                                                                    setGroupRecords(data.posts);
+                                                                } else {
+                                                                    setGroupRecords([]);
+                                                                }
+                                                            } catch (err) {
+                                                                console.error("Failed to load posts", err);
+                                                                setGroupRecords([]);
+                                                            }
                                                         }}
                                                         className="px-4 py-3 cursor-pointer hover:bg-green-50 transition-all border-b border-gray-100 last:border-b-0"
                                                     >
@@ -572,21 +693,38 @@ const DataPicker = () => {
                                 )}
                             </div>
 
-                            {/* Manual Entry */}
-                            {useCustomGroup && (
-                                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border-2 border-green-100">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-lg font-semibold text-gray-800">
-                                            Create New Group
-                                        </h3>
-                                        <button
-                                            type="button"
-                                            onClick={() => setUseCustomGroup(false)}
-                                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors"
-                                        >
-                                            <X className="w-5 h-5" />
-                                        </button>
+                            {groupRecords.length > 0 && (
+                                <div className="mt-6 bg-gray-50 rounded-xl p-4 border">
+                                    <h4 className="font-semibold text-gray-700 mb-3">
+                                        Existing Posts ({groupRecords.length})
+                                    </h4>
+
+                                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                                        {groupRecords.map(post => (
+                                            <div
+                                                key={post.id}
+                                                className="p-3 bg-white rounded-lg border shadow-sm"
+                                            >
+                                                <p className="text-sm text-gray-800">
+                                                    {post.post_details}
+                                                </p>
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    {new Date(post.created_at).toLocaleString()}
+                                                </p>
+                                            </div>
+                                        ))}
                                     </div>
+                                </div>
+                            )}
+
+                            {showGroupModal && (
+                                <Modal
+                                    title="Create New Group"
+                                    onClose={() => {
+                                        setShowGroupModal(false);
+                                        setUseCustomGroup(false);
+                                    }}
+                                >
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-sm font-semibold text-gray-700">
@@ -597,102 +735,102 @@ const DataPicker = () => {
                                                 name="groupName"
                                                 value={groupInfo.groupName}
                                                 onChange={handleGroupChange}
-                                                className={`w-full px-4 py-3.5 rounded-xl border-2 ${errors.groupName ? 'border-red-400' : 'border-green-200'} bg-white focus:border-green-500 focus:ring-4 focus:ring-green-100 outline-none transition-all duration-300 text-gray-700 placeholder-gray-400`}
-                                                placeholder="Enter Facebook group name"
+                                                className={`w-full px-4 py-3.5 rounded-xl border-2 ${errors.groupName ? "border-red-400" : "border-green-300"
+                                                    } focus:ring-4 focus:ring-green-100`}
+                                                placeholder="Enter group name"
                                             />
                                             {errors.groupName && (
-                                                <div className="flex items-center gap-2 text-red-500 text-sm mt-2 p-2 bg-red-50 rounded-lg">
-                                                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                                    {errors.groupName}
-                                                </div>
+                                                <p className="text-sm text-red-500">{errors.groupName}</p>
                                             )}
                                         </div>
+
                                         <div className="space-y-2">
                                             <label className="text-sm font-semibold text-gray-700">
-                                                Additional Notes
+                                                Notes (optional)
                                             </label>
                                             <input
                                                 type="text"
-                                                name='note'
-                                                className="w-full px-4 py-3.5 rounded-xl border-2 border-green-200 bg-white focus:border-green-500 focus:ring-4 focus:ring-green-100 outline-none transition-all duration-300 text-gray-700 placeholder-gray-400"
-                                                placeholder="Optional description"
+                                                name="note"
                                                 value={groupInfo.note}
                                                 onChange={handleGroupChange}
+                                                className="w-full px-4 py-3.5 rounded-xl border-2 border-green-300 focus:ring-4 focus:ring-green-100"
+                                                placeholder="Optional note"
                                             />
                                         </div>
                                     </div>
-                                </div>
+
+                                    <div className="flex justify-end gap-3 mt-8">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowGroupModal(false)}
+                                            className="px-5 py-2 rounded-xl border text-gray-600 hover:bg-gray-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowGroupModal(false)}
+                                            className="px-5 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700"
+                                        >
+                                            Save Group
+                                        </button>
+                                    </div>
+                                </Modal>
                             )}
                         </div>
                     </div>
 
-                    {/* Post Information Section */}
-                    <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-6 md:p-8 border border-white/20">
-                        <div className="flex items-center gap-4 mb-8 pb-6 border-b border-gray-100">
-                            <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl shadow-lg">
-                                <FileText className="w-7 h-7 text-white" />
-                            </div>
-                            <div>
-                                <h2 className="text-2xl font-bold text-gray-800">
-                                    Post Information
-                                </h2>
-                                <p className="text-gray-500 text-sm mt-1">
-                                    Add post details and comments
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-6">
-                            {/* Post Details */}
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                                    <div className="p-1.5 bg-purple-50 rounded-lg">
-                                        <FileText className="w-4 h-4 text-purple-600" />
-                                    </div>
-                                    Post Details
-                                </label>
-                                <div className="relative">
+                    {showPostModal && (
+                        <Modal
+                            title="Add New Post"
+                            onClose={() => setShowPostModal(false)}
+                        >
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-sm font-semibold text-gray-700">
+                                        Post Details
+                                    </label>
                                     <textarea
                                         name="postDetails"
                                         value={postInfo.postDetails}
                                         onChange={handlePostChange}
                                         rows="4"
-                                        className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 hover:border-purple-300 bg-white/50 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none transition-all duration-300 text-gray-700 placeholder-gray-400 resize-none"
-                                        placeholder="Enter post content, description, links, or any relevant details..."
+                                        className="w-full px-4 py-3 rounded-xl border-2 border-purple-300 focus:ring-4 focus:ring-purple-100"
                                     />
-                                    <div className="absolute bottom-3 right-3 text-xs text-gray-400">
-                                        {postInfo.postDetails.length}/5000
-                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Comments */}
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                                    <div className="p-1.5 bg-pink-50 rounded-lg">
-                                        <MessageSquare className="w-4 h-4 text-pink-600" />
-                                    </div>
-                                    Comments
-                                    <span className="ml-auto text-xs font-normal text-gray-500">
-                                        (Separate with new lines)
-                                    </span>
-                                </label>
-                                <div className="relative">
+                                <div>
+                                    <label className="text-sm font-semibold text-gray-700">
+                                        Comments
+                                    </label>
                                     <textarea
                                         name="comments"
                                         value={postInfo.comments}
                                         onChange={handlePostChange}
-                                        rows="4"
-                                        className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 hover:border-pink-300 bg-white/50 focus:border-pink-500 focus:ring-4 focus:ring-pink-100 outline-none transition-all duration-300 text-gray-700 placeholder-gray-400 resize-none"
-                                        placeholder="Enter comments (each new line will be treated as separate comment)..."
+                                        rows="3"
+                                        className="w-full px-4 py-3 rounded-xl border-2 border-pink-300 focus:ring-4 focus:ring-pink-100"
                                     />
-                                    <div className="absolute bottom-3 right-3 text-xs text-gray-400">
-                                        {postInfo.comments.split('\n').filter(c => c.trim()).length} comments
-                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+
+                            <div className="flex justify-end gap-3 mt-8">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPostModal(false)}
+                                    className="px-5 py-2 rounded-xl border text-gray-600 hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={savePost}
+                                    className="px-5 py-2 rounded-xl bg-purple-600 text-white hover:bg-purple-700"
+                                >
+                                    Save Post
+                                </button>
+                            </div>
+                        </Modal>
+                    )}
 
                     {/* Submit Button */}
                     <div className="flex justify-center pt-8">
