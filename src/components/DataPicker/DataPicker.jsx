@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Phone, MapPin, Briefcase, Calendar, Users, MessageSquare, FileText, Hash, Save, Search, ChevronDown, Plus, X } from 'lucide-react';
 import Modal from './Modal/Modal';
+import { createPortal } from "react-dom";
 
 const DataPicker = () => {
     const [groups, setGroups] = useState([]);
@@ -18,6 +19,9 @@ const DataPicker = () => {
     const [showGroupModal, setShowGroupModal] = useState(false);
     const [showPostModal, setShowPostModal] = useState(false);
     const groupDropdownRef = useRef(null);
+
+    const profileInputRef = useRef(null);
+    const [inputRect, setInputRect] = useState(null);
 
     useEffect(() => {
         const fetchGroups = async () => {
@@ -236,51 +240,51 @@ const DataPicker = () => {
     };
 
     const saveGroup = async () => {
-    if (!groupInfo.groupName.trim()) {
-        alert("Group name is required");
-        return;
-    }
-
-    if (!personDbId) {
-        alert("Please select a person first");
-        return;
-    }
-
-    try {
-        const res = await fetch("/api/groups", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                personId: personDbId,
-                groupName: groupInfo.groupName,
-                note: groupInfo.note
-            })
-        });
-
-        const data = await res.json();
-
-        if (!data.success) {
-            throw new Error(data.error || "Failed to save group");
+        if (!groupInfo.groupName.trim()) {
+            alert("Group name is required");
+            return;
         }
 
-        // ✅ Update local state
-        const newGroup = data.group;
+        if (!personDbId) {
+            alert("Please select a person first");
+            return;
+        }
 
-        setPersonGroups(prev => [...prev, newGroup]);
-        setGroupInfo({
-            id: newGroup.id,
-            groupName: newGroup.group_name,
-            note: groupInfo.note || ""
-        });
+        try {
+            const res = await fetch("/api/groups", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    personId: personDbId,
+                    groupName: groupInfo.groupName,
+                    note: groupInfo.note
+                })
+            });
 
-        setShowGroupModal(false);
-        setUseCustomGroup(false);
+            const data = await res.json();
 
-    } catch (err) {
-        console.error("Save group error:", err);
-        alert(err.message);
-    }
-};
+            if (!data.success) {
+                throw new Error(data.error || "Failed to save group");
+            }
+
+            // ✅ Update local state
+            const newGroup = data.group;
+
+            setPersonGroups(prev => [...prev, newGroup]);
+            setGroupInfo({
+                id: newGroup.id,
+                groupName: newGroup.group_name,
+                note: groupInfo.note || ""
+            });
+
+            setShowGroupModal(false);
+            setUseCustomGroup(false);
+
+        } catch (err) {
+            console.error("Save group error:", err);
+            alert(err.message);
+        }
+    };
 
 
     const savePost = async () => {
@@ -379,8 +383,17 @@ const DataPicker = () => {
                                         type="text"
                                         name="profileName"
                                         value={personInfo.profileName}
+                                        ref={profileInputRef}
                                         onChange={handlePersonChange}
-                                        onFocus={() => personSuggestions.length && setShowSuggestions(true)}
+
+                                        // onFocus={() => personSuggestions.length && setShowSuggestions(true)}
+                                        onFocus={() => {
+                                            if (profileInputRef.current) {
+                                                setInputRect(profileInputRef.current.getBoundingClientRect());
+                                            }
+                                            personSuggestions.length && setShowSuggestions(true);
+                                        }}
+
                                         className={`w-full px-4 py-3.5 rounded-xl border-2 ${errors.profileName ? "border-red-400" : "border-gray-200 hover:border-blue-300"} bg-white/50 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all duration-300 text-gray-700 placeholder-gray-400`}
                                         placeholder="Search Facebook profile..."
                                         autoComplete="off"
@@ -397,19 +410,28 @@ const DataPicker = () => {
                                 </div>
 
                                 {/* Suggestions Dropdown */}
-                                {showSuggestions && !showGroupModal && !showPostModal && personSuggestions.length > 0 && (
-                                    <div className="fixed md:absolute z-50 w-[calc(100vw-2rem)] md:w-full max-w-[calc(100vw-2rem)] md:max-w-none mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden left-4 md:left-0 md:top-full">
-                                        <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
-                                            <div className="flex items-center gap-2">
-                                                <Users className="w-4 h-4 text-blue-600" />
-                                                <span className="text-sm font-semibold text-gray-700">Found {personSuggestions.length} profiles</span>
-                                            </div>
-                                        </div>
+
+                                {showSuggestions &&
+                                    personSuggestions.length > 0 &&
+                                    inputRect &&
+                                    createPortal(
                                         <div
-                                            className="max-h-96 overflow-y-auto custom-scrollbar"
-                                            style={{ maxHeight: 'min(24rem, 60vh)' }}
+                                            className="z-[9999] bg-white rounded-xl shadow-2xl border border-gray-100"
+                                            style={{
+                                                position: "absolute",
+                                                top: inputRect.bottom + window.scrollY,
+                                                left: inputRect.left + window.scrollX,
+                                                width: inputRect.width,
+                                            }}
                                         >
-                                            {personSuggestions.map((p, idx) => (
+                                            <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+                                                <span className="text-sm font-semibold text-gray-700">
+                                                    Found {personSuggestions.length} profiles
+                                                </span>
+                                            </div>
+
+                                            <div className="max-h-96 overflow-y-auto">
+                                                {personSuggestions.map((p, idx) => (
                                                 <div
                                                     key={idx}
                                                     onClick={() => selectPerson(p)}
@@ -434,9 +456,11 @@ const DataPicker = () => {
                                                     </div>
                                                 </div>
                                             ))}
-                                        </div>
-                                    </div>
-                                )}
+                                            </div>
+                                        </div>,
+                                        document.getElementById("overlay-root")
+                                    )}
+
 
                                 {errors.profileName && (
                                     <div className="flex items-center gap-2 text-red-500 text-sm mt-2 p-2 bg-red-50 rounded-lg">
