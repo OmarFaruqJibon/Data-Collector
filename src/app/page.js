@@ -1,8 +1,8 @@
-import DataPicker from "@/components/DataPicker/DataPicker";
+import DataPickerPhp from "@/components/DataPicker/DataPickerPhp";
 import Image from "next/image";
 
 export default function Home() {
   return (
-    <DataPicker/>
+    <DataPickerPhp/>
   );
 }
